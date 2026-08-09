@@ -27,8 +27,16 @@ BUILD_DIR := build
 CJSON_DIR := $(SRC_DIR)/vendor/cjson
 
 # LDLIBS: リンク時に必要な外部ライブラリ。
-#   -liconv : db_layer.c が文字コード変換(UTF-8→SJIS)に使うiconvのリンクに必要（macOSではリンク必須）。
+#   -liconv : db_layer.c が文字コード変換(UTF-8→SJIS)に使うiconvのリンクに必要。
+#             macOSではiconvがlibcと別の独立したライブラリのためリンクが必須。
+#             Linux(glibc)ではiconvがlibc組み込みで、独立した-liconv用ライブラリファイルが
+#             存在しないため、-liconvを付けるとリンクエラーになる。OSで切り替える。
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
 LDLIBS := -liconv
+else
+LDLIBS :=
+endif
 
 # --- 通常ビルド (本番実装 db_layer.c を使用) ---
 # APP_SRCS: 本番用実行ファイルをビルドするのに必要なソースファイル一覧。
