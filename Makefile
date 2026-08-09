@@ -7,10 +7,13 @@
 # 使用するCコンパイラ。ここではclang（Xcode Command Line Toolsに含まれる）を指定。
 CC := clang
 # コンパイル時のオプション。
-#   -Wall -Wextra : 警告を多めに出す（バグの早期発見のため）
-#   -std=c11      : C11規格に準拠してコンパイルする
-#   -g            : デバッグ情報を付与する（gdb/lldbでのデバッグを可能にする）
-CFLAGS := -Wall -Wextra -std=c11 -g
+#   -Wall -Wextra              : 警告を多めに出す（バグの早期発見のため）
+#   -std=c11                   : C11規格に準拠してコンパイルする
+#   -g                         : デバッグ情報を付与する（gdb/lldbでのデバッグを可能にする）
+#   -D_POSIX_C_SOURCE=200809L  : strnlen等のPOSIX拡張関数を有効にするfeature test macro。
+#                                 macOSのlibcは-std=c11でも標準で見えるが、Linux(glibc)では
+#                                 このマクロがないと暗黙関数宣言エラーになるため明示的に指定する。
+CFLAGS := -Wall -Wextra -std=c11 -g -D_POSIX_C_SOURCE=200809L
 
 # ディレクトリパスをまとめて変数化しておくことで、後の記述を短く・変更しやすくしている。
 SRC_DIR := src
