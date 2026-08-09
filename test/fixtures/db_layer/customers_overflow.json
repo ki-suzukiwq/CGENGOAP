@@ -1,0 +1,19 @@
+{
+  "_comment": "TC-DB-E05: 文字コード変換後のバッファ超過によるDB_RESULT_DB_ERROR検証用フィクスチャ。design_db_layer.md 4.1節参照。nameフィールドに全角文字を25文字収録しており、SJIS変換後は1文字2バイト×25=50バイトとなり、name[41](40バイト+終端)の枠に収まらない。",
+  "customers": [
+    {
+      "_test_case": "TC-DB-E05: nameがSJIS変換後にバッファ超過するレコード。",
+      "customer_id": "EEEE5555FFFF6666GGGG7777",
+      "name": "あああああああああああああああああああああああああ",
+      "birth_date": "19990909",
+      "address": "OSAKA-FU OSAKA-SHI",
+      "phone_number": "0611112222",
+      "email": "overflow@example.com",
+      "inserted_at": "20220101000000",
+      "updated_at": "20220101000000",
+      "service_a": 0,
+      "service_b": 0,
+      "service_c": 0
+    }
+  ]
+}

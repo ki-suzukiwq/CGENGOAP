@@ -1,0 +1,8 @@
+{
+  "_comment": "TC-DB-E04: DB_RESULT_DB_ERROR（パース失敗）検証用フィクスチャ。design_db_layer.md 5節参照。以下、書き込み処理が途中で中断されたケースを模して、意図的にJSONとして不正な状態（文字列・配列・オブジェクトが閉じていない）にしている。",
+  "customers": [
+    {
+      "customer_id": "BBBB0000CCCC1111DDDD2222",
+      "name": "書き込み中断レコード",
+      "birth_date": "20000101",
+      "address": "破損データにつき address フィールドがここで切れて

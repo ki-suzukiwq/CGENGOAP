@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make)",
+      "Bash(make test)",
+      "Bash(make test_db_layer)",
+      "Bash(make clean)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_input.notebook_path // empty' | { read -r f; if [ -n \"$f\" ] && printf '%s' \"$f\" | grep -qE '(^|/)(test/unity|src/vendor)/'; then jq -n '{hookSpecificOutput:{hookEventName:\"PreToolUse\",permissionDecision:\"deny\",permissionDecisionReason:\"ベンダリング済み外部コード（test/unity または src/vendor 配下）のため編集は禁止されています。変更が必要な場合はユーザーに確認してください。\"}}'; fi; }"
+          }
+        ]
+      }
+    ]
+  }
+}
