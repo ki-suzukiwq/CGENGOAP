@@ -13,3 +13,5 @@ make              # build/main を生成
 make test         # customer_get() のUT（13ケース）
 make test_db_layer # db_layer.c（JSON方式）自体のUT（6ケース）
 ```
+
+<!-- test: verify PR flow (feature branch) -->
