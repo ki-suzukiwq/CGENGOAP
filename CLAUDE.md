@@ -41,3 +41,53 @@
 - `.claude/settings.json` : make系コマンドの許可リスト、ベンダリングコード編集ブロックのフック
 - `.claude/steering/` : このプロジェクトの構造化ノート（オンデマンド参照、常時ロードしない）
 - `.claude/commands/` : スラッシュコマンド（`/build`, `/test`）
+
+## Git運用ルール
+
+### ブランチ運用
+- mainブランチへの直接コミット・pushは禁止（branch protectionにより技術的にもブロックされる）
+- 新しい作業は必ずfeatureブランチを作成してから行う
+  - 命名規則: `feature/{作業内容の英語短縮}`（新機能・改修）
+  - 命名規則: `fix/{修正内容の英語短縮}`（バグ修正・事故対応）
+
+### 作業開始前の手順（必須）
+新しい作業を始める前は、必ず以下を実行してmainを最新化してから
+featureブランチを作成すること。
+
+```
+git checkout main
+git pull origin main
+git checkout -b feature/{作業内容}
+```
+
+これを怠ると、featureブランチがmainから乖離し、PRマージ時に
+「Require branches to be up to date before merging」の判定で
+待たされる、または追加のupdate作業が必要になる。
+
+### コミット・PR運用
+- 1タスク（変更内容単位）ごとに1コミットを意識する
+- 作業が完了したらpushし、Pull Requestを作成する
+  - gh CLIが使える場合は `gh pr create` を使用する
+- PR作成後は完了を報告し、マージの実行は必ずユーザーの確認を
+  待つこと（Claude Code側で勝手にマージしない）
+
+### マージ後の後片付け（必須）
+PRがマージされたら、以下を実行してローカル環境をクリーンな
+状態に保つこと。
+
+```
+git checkout main
+git pull origin main
+git branch -d {マージ済みのfeatureブランチ名}
+git fetch --prune
+```
+
+「git branch」の結果、mainのみが残っている状態を基本とする。
+
+### 禁止事項
+- force pushは使用しない
+- ユーザーの確認なしに、branch protectionの設定変更や
+  リポジトリの公開設定（visibility）を変更しない
+- ビルド成果物（build/配下）や `.claude/settings.local.json` を
+  コミットしない（.gitignoreで除外済みのはずだが、念のため
+  コミット前に `git status` で確認すること）
