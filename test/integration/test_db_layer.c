@@ -10,10 +10,10 @@
  * design_db_layer.md 5, 7節参照。
  */
 
-#define FIXTURE_MAIN "test/fixtures/db_layer/customers_main.json"
-#define FIXTURE_MALFORMED "test/fixtures/db_layer/customers_malformed.json"
-#define FIXTURE_OVERFLOW "test/fixtures/db_layer/customers_overflow.json"
-#define FIXTURE_MISSING "test/fixtures/db_layer/customers_does_not_exist.json"
+#define FIXTURE_MAIN "test/integration/fixtures/db_layer/customers_main.json"
+#define FIXTURE_MALFORMED "test/integration/fixtures/db_layer/customers_malformed.json"
+#define FIXTURE_OVERFLOW "test/integration/fixtures/db_layer/customers_overflow.json"
+#define FIXTURE_MISSING "test/integration/fixtures/db_layer/customers_does_not_exist.json"
 
 void setUp(void) {
 }
