@@ -9,9 +9,9 @@
 - `src/vendor/cjson/` : ベンダリングしたcJSON本体（v1.7.19）。`test/unity`と同じ方式（サブモジュールではない）。**変更禁止**。
 - `test/unity/` : Unity (ThrowTheSwitch) テストフレームワーク本体。GitHubから直接ソース配置。**変更禁止**。
 - `test/mocks/mock_db_layer.c/.h` : `db_layer.h` のモック実装。
-- `test/test_customer.c` : `customer.c` に対するテストケース（`db_layer`はモックに差し替え）。全13ケース。
-- `test/fixtures/db_layer/` : `db_layer.c`（JSON方式）自体のUT用フィクスチャJSON。
-- `test/test_db_layer.c` : `db_layer.c`（JSON方式）自体に対するテストケース。全6ケース。
+- `test/test_customer.c` : `customer.c` に対するUnit Testケース（`db_layer`はモックに差し替え）。全13ケース。
+- `test/integration/test_db_layer.c` : `db_layer.c`（JSON方式）自体に対するIntegration Testケース（実ファイルI/O・cJSONパース・iconv変換を経由）。全6ケース。
+- `test/integration/fixtures/db_layer/` : 上記テスト用フィクスチャJSON。
 
 `src/vendor/` と `test/unity/` の編集は `.claude/settings.json` のフックでブロックされる。
 

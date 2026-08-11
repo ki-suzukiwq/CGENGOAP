@@ -30,7 +30,7 @@ Oracle/Pro*C本実装への差し替えは対象外（別フェーズ）。
 | T13 | `db_layer.c`: JSON読み込み・パース・メモリキャッシュ・線形探索ロジックの実装（`db_layer_init`/`db_layer_find_customer`/`db_layer_close`/`db_layer_load_from_path`、`src/db_layer_internal.h`追加） | 4 | 完了 |
 | T14 | `db_layer.c`: iconvによるUTF-8→SJIS変換の実装（`name`/`address`、バッファ超過時は`DB_RESULT_DB_ERROR`） | 4.1 | 完了 |
 | T15 | `src/data/customers.json`（本番/開発ビルド用データ）の作成 | 2, 3 | 完了 |
-| T16 | `test/test_db_layer.c`新規作成（TC-DB-N01, E01〜E05の6ケース、`test/fixtures/db_layer/`のフィクスチャを使用） | 5, 7 | 完了（`customers_overflow.json`フィクスチャも追加） |
+| T16 | `test/test_db_layer.c`新規作成（TC-DB-N01, E01〜E05の6ケース、`test/fixtures/db_layer/`のフィクスチャを使用） | 5, 7 | 完了（`customers_overflow.json`フィクスチャも追加。2026-08-11: `test/integration/test_db_layer.c`・`test/integration/fixtures/db_layer/`へ移動済み。design_db_layer.md 9.4節参照） |
 | T17 | `Makefile`: `make test_db_layer`ターゲット追加（既存`make test`は無改修、`-liconv`リンク追加） | 7 | 完了 |
 | T18 | 全体ビルド確認（`make`/`make test`/`make test_db_layer`が全て成功すること） | （ゴールの再確認） | 完了（`make test`: 13 Tests 0 Failures、`make test_db_layer`: 6 Tests 0 Failures。`make`成果物での実データ読み込みもアドホック確認済み） |
 | T19 | `CLAUDE.md`/`requirements.md`/`tasks.md`のドキュメント反映 | 8 | 完了 |
