@@ -19,7 +19,7 @@
 - `db_layer_init()` / `db_layer_close()` / `db_layer_find_customer()` の実ロジック実装（JSON方式）
 - JSON読み込み・パース（cJSONベンダリング）
 - 文字コード変換（UTF-8→SJIS、iconv使用）
-- `db_layer_find_customer()` 自体の新規UT（`test/test_db_layer.c`）
+- `db_layer_find_customer()` 自体の新規UT（`test/integration/test_db_layer.c`。9節参照）
 
 ### 対象外
 - Oracle/Pro*C実装そのもの（引き続き別フェーズ）
@@ -33,9 +33,10 @@
 | `src/vendor/cjson/cJSON.c` `.h` | ベンダリングしたcJSON本体（test/unityと同じ方式：ソース直接配置、サブモジュールなし。v1.7.19） |
 | `src/db_layer_internal.h` | `db_layer_load_from_path()`をテストから直接呼べるようにする非公開ヘッダ（`db_layer.h`には含めない） |
 | `src/data/customers.json` | 本番/開発ビルド（`make`）が読み込む疑似DBデータ |
-| `test/fixtures/db_layer/customers_main.json` | `test_db_layer.c`用：OK / NOT_FOUND / DATA_CONFLICT検証用データ |
-| `test/fixtures/db_layer/customers_malformed.json` | `test_db_layer.c`用：DB_ERROR（パース失敗）検証用データ |
-| `test/fixtures/db_layer/customers_overflow.json` | `test_db_layer.c`用：文字コード変換後バッファ超過によるDB_ERROR検証用データ（4.1節） |
+| `test/integration/test_db_layer.c` | `db_layer_find_customer()`自体（JSON実装）のUT本体。実ファイルI/O・cJSONパース・iconv変換を経由するためIntegration Test的に`test/integration/`配下に置く（9節参照） |
+| `test/integration/fixtures/db_layer/customers_main.json` | `test_db_layer.c`用：OK / NOT_FOUND / DATA_CONFLICT検証用データ |
+| `test/integration/fixtures/db_layer/customers_malformed.json` | `test_db_layer.c`用：DB_ERROR（パース失敗）検証用データ |
+| `test/integration/fixtures/db_layer/customers_overflow.json` | `test_db_layer.c`用：文字コード変換後バッファ超過によるDB_ERROR検証用データ（4.1節） |
 | （フィクスチャなし） | CONNECTION_ERROR検証用：存在しないパス（`customers_does_not_exist.json`、実ファイルは作らない）を直接指定 |
 
 ## 3. JSONスキーマ
@@ -101,7 +102,7 @@
 | 正常 | `customers_main.json`内の一意なID(`AAAA1111BBBB2222CCCC3333`)で検索 | `DB_RESULT_OK` |
 | 該当なし | `customers_main.json`に存在しないID(`ZZZZ9999ZZZZ9999ZZZZ9999`)で検索 | `DB_RESULT_NOT_FOUND` |
 | 整合性異常 | `customers_main.json`内の重複ID(`DDDD4444EEEE5555FFFF6666`、2件収録)で検索 | `DB_RESULT_DATA_CONFLICT` |
-| 接続断 | 存在しないパス（例: `test/fixtures/db_layer/customers_does_not_exist.json`）を指定して`db_layer_init()`相当の処理を実行 | `DB_RESULT_CONNECTION_ERROR` |
+| 接続断 | 存在しないパス（例: `test/integration/fixtures/db_layer/customers_does_not_exist.json`）を指定して`db_layer_init()`相当の処理を実行 | `DB_RESULT_CONNECTION_ERROR` |
 | DB想定外エラー | `customers_malformed.json`（意図的に構文を破損）を指定 | `DB_RESULT_DB_ERROR` |
 
 ## 6. cJSONベンダリング方針
@@ -112,9 +113,10 @@
 
 ## 7. テスト方針
 
-- 新規ファイル `test/test_db_layer.c` を追加。**`db_layer_find_customer()`自体（JSON実装）が検証対象**（`customer.c`は経由しない）
+- 新規ファイル `test/integration/test_db_layer.c` を追加。**`db_layer_find_customer()`自体（JSON実装）が検証対象**（`customer.c`は経由しない）
 - 既存 `test/test_customer.c`（`customer_get()`対象、mock使用）とは独立したテストバイナリとする
 - Makefileに新規ターゲット `make test_db_layer`（`build/test_db_layer_runner`を生成・実行）を追加。既存`make test`は無改修
+- Unit TestとIntegration Testの役割分担・ディレクトリ構成については9.3節で改めて整理する
 - テストケース一覧（5節の対応表と対）
 
 | TC ID | 内容 | 期待結果 |
@@ -137,3 +139,106 @@ TC-DB-N01では、`name`/`address`がUTF-8→SJISへ正しく変換されてい�
   - `make`: `build/main`生成、`db_layer_init()`が`src/data/customers.json`を正しく読み込むことを別途アドホック検証済み
   - `make test_db_layer`: 6 Tests 0 Failures 0 Ignored（TC-DB-N01, E01〜E05）
 - Oracle/Pro*C本実装への差し替えは引き続き別フェーズ（未着手）
+- `test/test_db_layer.c`・`test/fixtures/db_layer/`は、9.3節の方針に基づき`test/integration/`配下へ移動済み
+  （2026-08-11。パス変更のみで、テスト内容・件数に変更なし。`make test_db_layer`で6 Tests 0 Failuresを再確認済み）
+
+## 9. 顧客状態（state_id）対応の拡張方針【requirements.md 10節 対応、試験導入】
+
+### 9.0 位置づけ
+
+- `requirements.md` 10節で追加された、顧客の契約・利用ライフサイクル状態（全16パターン、
+  今回は代表5パターンS01〜S05）に応じた応答変動要件を受けて、JSON DB（本ファイルが対象とする
+  `db_layer.c`のJSON方式暫定実装）側のスキーマ・実装方針を検討する。
+- 状態の正式な16パターン定義（Excel状態遷移図由来のJSON）はまだ提供されていないため、
+  本節も1〜8節と同様に**試験的な設計**であり、実データ提供後に差し替え・拡張する前提。
+- 本節は設計レベルの記述のみを対象とし、`db_layer.c`・`customer.c`等の実コード変更、
+  `src/data/customers.json`の実データ更新は行わない（別タスク）。
+
+### 9.1 JSONスキーマ拡張案
+
+3節のJSONスキーマに、状態を表す`state_id`フィールドを追加する。値は`requirements.md` 10.1節の
+状態コード（`"S01"`〜`"S05"`）と同じ**文字列コード**とする。
+
+```json
+{
+  "customer_id": "AAAA1111BBBB2222CCCC3333",
+  "name": "山田太郎",
+  "birth_date": "19900101",
+  "address": "東京都千代田区1-1-1",
+  "phone_number": "0312345678",
+  "email": "taro.yamada@example.com",
+  "inserted_at": "20240101120000",
+  "updated_at": "20240102130000",
+  "service_a": 1,
+  "service_b": 0,
+  "service_c": 1,
+  "state_id": "S01"
+}
+```
+
+- `state_id`は`DbCustomerRecord`（`db_layer.h`）に新規フィールド`char state_id[2 + 1]`
+  （"S01"〜"S99"を想定した2桁+終端）として追加する想定（未実装、別タスク）。
+- 状態名・状態ごとのマスク対象フィールド等の**振る舞いの定義**まで`customers.json`側に持たせるか
+  （データ駆動）、`customer.c`側にハードコードするか（コード駆動）は9.4節「未確定事項」を参照。
+  本節では、まずは「状態コード自体をJSONデータとして持つ」という最小限の拡張のみを設計対象とする。
+
+### 9.2 cJSON導入方針
+
+cJSONは既に`src/vendor/cjson/`にベンダリング済みであり（6節参照）、Makefile
+（`CJSON_DIR`、`APP_SRCS`、`TEST_DB_LAYER_SRCS`）・GitHub Actions（`.github/workflows/build.yml`、
+`make`/`make test`/`make test_db_layer`いずれも成功確認済み）ともに対応済みである。
+
+`state_id`フィールドの追加は、既存レコードに新しいJSONキーが1つ増えるだけであり、
+cJSONの読み込みロジック（キー名で値を取得する既存の方式）をそのまま流用できる。
+そのため、**cJSONライブラリ自体の新規導入・Actions側への新しいインストールステップの追加は不要**。
+
+### 9.3 db_layer.c実装方針・層分離の健全性チェック
+
+- `db_layer.h`の**関数シグネチャ**（`db_layer_init()` / `db_layer_close()` / `db_layer_find_customer()`）は
+  変更しない。4節の設計方針（「JSONファイルパスは固定、読み込み処理は`db_layer_load_from_path()`」）も
+  そのまま踏襲する。`state_id`はJSON読み込み時に`DbCustomerRecord`へマッピングする1フィールドが増えるだけで、
+  読み込み・線形探索のロジック自体（4節）に構造的な変更は生じない。
+- ただし、**「customer.c側のロジックには一切変更が不要」という主張は、正確には成立しない**点を明記する
+  （層分離の健全性チェック結果）。
+  - **変更不要な部分**: `db_layer.h`の関数シグネチャ、リンク時差し替えの仕組み（`make`/`make test`での
+    本番実装/モック切り替え）、`customer.c`から`db_layer_find_customer()`を呼び出す既存コード自体。
+  - **変更が必要になる見込みの部分**: `DbCustomerRecord`（`db_layer.h`が定義する構造体）へ`state_id`
+    フィールドを追加する必要がある。また、`requirements.md` REQ-S01〜S05の振る舞い
+    （フィールドのマスク、状態別のエラーコード返却）を実現するには、`customer.c`の`customer_get()`が
+    `db_record.state_id`を読み取り、状態に応じて応答を分岐させるロジックを追加する必要がある
+    （design.md側の詳細は同ファイル参照）。
+  - つまり、**「関数呼び出しのインターフェース」は不変だが、「インターフェースが運ぶデータの形（構造体）」と
+    「呼び出し元のビジネスロジック」は状態対応のために拡張が必要**、というのが正確な整理である。
+    層分離の設計自体（DB層とビジネスロジック層の責務分割）は健全に保たれており、
+    大規模な作り直しは不要という点は担保されている。
+
+### 9.4 テスト方針の整理（Unit Test / Integration Test）
+
+既存のMock（`test/mocks/mock_db_layer.c`）と、JSON DBを使ったテスト（`test/integration/test_db_layer.c`）は、
+検証対象・検証レイヤーが異なるため、両方を維持する。
+
+| | Unit Test | Integration Test |
+|---|---|---|
+| ファイル | `test/test_customer.c` | `test/integration/test_db_layer.c` |
+| 検証対象 | `customer.c`の`customer_get()`（ビジネスロジック） | `db_layer.c`の`db_layer_find_customer()`等（JSON方式実装） |
+| DBアクセス | `test/mocks/mock_db_layer.c`に差し替え（実I/Oなし） | 実際のJSONファイル（`test/integration/fixtures/db_layer/`）をファイルI/Oで読み込む |
+| 検証の目的 | 入力バリデーション・エラーコード変換・状態に応じた分岐など、ビジネスロジックが正しいか（I/Oの実装詳細から独立して検証） | JSON読み込み・パース・cJSON連携・iconv文字コード変換・線形探索など、実装の詳細（I/O・外部ライブラリ連携）が正しいか |
+| 実行速度・安定性 | 高速・決定的（外部要因に依存しない） | ファイルI/O・文字コード変換を伴うため、Unit Testよりわずかに重い。ただし外部ネットワーク等には依存しないためCIでの安定性は保たれる |
+| ディレクトリ | `test/`直下（`test/mocks/`にモック実装） | `test/integration/`（テスト本体・フィクスチャとも） |
+
+- ディレクトリ構成: `test/integration/`を新設し、`test_db_layer.c`本体と、そのフィクスチャ
+  （`test/integration/fixtures/db_layer/`）をまとめて配置する（2026-08-11実施）。
+  `test/mocks/`・`test/test_customer.c`（Unit Test側）は既存の配置のまま変更しない。
+- 状態（`state_id`）関連の新規テストケースも、DB層自体を対象とする限りは
+  `test/integration/test_db_layer.c`に追加する想定（未実装、別タスク）。
+  `customer_get()`側で状態に応じた分岐ロジックを追加した場合のテストは、
+  引き続き`test/test_customer.c`（Unit Test、mock使用）に追加する。
+
+### 9.5 未確定事項（実装フェーズ着手前に確定が必要）
+
+- `DbCustomerRecord`・`Customer`構造体への`state_id`（または対応するフィールド）追加の具体的な型・サイズ
+- 状態ごとの振る舞い（マスク対象フィールド、エラーコード）を、JSONデータ側に持たせるか
+  （例: 状態マスタをJSONで別途定義）、`customer.c`側にハードコードするかの方針
+- `requirements.md` 10.4節に記載の未確定事項（`CUSTOMER_RESULT_CANCELLED`等の仮称エラーコードの正式化等）
+- `src/data/customers.json`（本番/開発ビルド用データ）・`test/integration/fixtures/db_layer/`配下の
+  各フィクスチャへの`state_id`実データ追加

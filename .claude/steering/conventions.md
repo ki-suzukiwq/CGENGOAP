@@ -23,7 +23,7 @@
 
 ## テストケース命名規則（test_customer.c）
 - 命名規則: `test_customer_get_<状況>_should_<期待結果>`
-- 1ファイルに関連する全ケースをまとめる（`test/test_customer.c`、`test/test_db_layer.c`のように対象単位で分割）
+- 1ファイルに関連する全ケースをまとめる（`test/test_customer.c`（Unit Test）、`test/integration/test_db_layer.c`（Integration Test）のように対象単位で分割）
 - TC ID（design.md参照）: 正常系は`TC-N`、異常系は`TC-E`、境界値は`TC-B`、db_layer固有は`TC-DB-`のprefixを使う
 
 ## エラー時の応答構造体の扱い

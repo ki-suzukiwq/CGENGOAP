@@ -261,3 +261,24 @@ enumの範囲外の値を強制的にキャストして渡す必要があるが�
 `test_customer.c`の13ケース（TC-N01, TC-E01〜E07, TC-B01〜B05）は全て上表のいずれかの分岐に
 対応しており、処理フローに存在しない条件を検証しているケースはない。
 （`make test`で13 Tests 0 Failures 0 Ignoredを確認済み）
+
+## 9. 顧客状態拡張（requirements.md 10節）に伴う本設計書への影響確認【試験導入】
+
+`requirements.md` 10節で追加された、顧客の状態（S01〜S05）に応じた応答変動要件について、
+本設計書（`customer_get()`の処理フロー）への影響を確認する。JSON DB側のスキーマ拡張方針・
+層分離の健全性チェックの詳細は`design_db_layer.md` 9節を参照。要点のみ以下に記載する。
+
+- **変わらない部分**: `db_layer.h`の関数シグネチャ（`db_layer_find_customer()`等）、
+  8.2節の処理フローのうちStep 0〜Step 2（`out_customer`のNULLチェック、`customer_id`の
+  フォーマット検証、`db_layer_find_customer()`呼び出し）は無変更で成立する。
+  8.1節の`convert_db_result()`（`DbResult`→`CustomerResult`変換）も、DB接続断・整合性異常等の
+  既存エラー系列とは独立した話のため無変更で成立する。
+- **変わる見込みの部分**: 8.2節Step 3〜4（DB層エラー変換後の分岐、正常時のフィールドコピー）は、
+  現状「`customer_result == CUSTOMER_RESULT_OK`か否か」の二分岐のみだが、状態対応後は
+  「DB層から見つかった後、`db_record.state_id`の値に応じて応答内容（フィールドのマスク・
+  エラーコード）をさらに分岐させる」という新しいステップが必要になる見込み（未設計、別タスク）。
+  `Customer`構造体（1.4節）・`CustomerResult`（1.1節）にも、状態に応じたエラーコード
+  （`CUSTOMER_RESULT_CANCELLED`等、requirements.md 10.4節の仮称）を追加する必要が生じる見込み。
+- 上記の通り、「customer.c側は一切変更不要」ではなく、**Step 0〜2とconvert_db_result()は影響を受けないが、
+  Step 3〜4（正常系ヒット後の応答決定ロジック）には拡張が必要**、というのが正確な整理である
+  （design_db_layer.md 9.3節と同じ結論）。設計・実装は本タスクでは行わず、別タスクで着手する。
